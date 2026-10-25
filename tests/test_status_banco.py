@@ -13,6 +13,7 @@ class StatusBancoTests(unittest.TestCase):
         self.session = MagicMock()
         models = ModuleType("models")
         models.session = self.session
+        models.Session = MagicMock()
         models.Cliente = type("Cliente", (), {})
         models.Agendamento = type("Agendamento", (), {})
 
