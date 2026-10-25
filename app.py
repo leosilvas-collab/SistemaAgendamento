@@ -21,8 +21,12 @@ def status_banco():
             "total_clientes": total_clientes,
             "total_agendamentos": total_agendamentos
         })
-    except Exception as e:
-        return jsonify({"banco": "erro", "detalhes": str(e)}), 500
+    except Exception:
+        app.logger.exception("Falha ao consultar o status do banco de dados.")
+        return jsonify({
+            "banco": "erro",
+            "mensagem": "Não foi possível consultar o banco de dados.",
+        }), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
