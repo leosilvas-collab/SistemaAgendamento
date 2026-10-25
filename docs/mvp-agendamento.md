@@ -44,6 +44,17 @@ O registro da cliente acontece durante o agendamento, sem cadastro separado.
 - Dados de contato não aparecem na consulta pública de horários;
 - A confirmação será na tela. Lembretes automáticos não fazem parte deste rascunho.
 
+## Critérios de aceite da consulta de horários
+
+- De segunda-feira a sábado, um dia sem reservas apresenta 18 horários disponíveis;
+- Aos domingos, a agenda não oferece horários;
+- Os horários são apresentados em ordem, com intervalos de 30 minutos;
+- O último atendimento da manhã começa às 11:30 e termina às 12:00;
+- O primeiro atendimento da tarde começa às 13:00;
+- O último atendimento do dia começa às 17:30 e termina às 18:00;
+- Horários reservados deixam de aparecer como disponíveis;
+- Se não houver horários livres no dia escolhido, a página informa isso e permite selecionar outro dia.
+
 ## Ainda a definir antes de implementar
 
 - Regras para bloquear horários, cancelar e remarcar.
