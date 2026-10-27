@@ -14,6 +14,7 @@ class StatusBancoTests(unittest.TestCase):
         models = ModuleType("models")
         models.session = self.session
         models.Session = MagicMock()
+        models.Session.return_value.__enter__.return_value = self.session
         models.Cliente = type("Cliente", (), {})
         models.Agendamento = type("Agendamento", (), {})
 

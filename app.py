@@ -1,14 +1,49 @@
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
+from pathlib import Path
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
+from werkzeug.exceptions import BadRequest
 
-from agenda import DURACAO_MINUTOS, horarios_disponiveis
-from models import session, Session, Cliente, Agendamento
+from reservas import validar_reserva, ReservaInvalida, LimiteDeTentativas
 
-app = Flask(__name__)
+from agenda import (DURACAO_MINUTOS, horarios_disponiveis, agora_sao_paulo,
+                    datas_disponiveis, limite_consulta)
+from models import Session, Cliente, Agendamento
+
+app = Flask(__name__, root_path=str(Path(__file__).resolve().parent))
+app.config.update(MAX_CONTENT_LENGTH=8192, RESERVAS_POR_MINUTO=10)
+limite_reservas = LimiteDeTentativas()
 
 @app.route('/')
 def home():
+    return render_template("inicio.html")
+
+
+
+@app.route('/manifest.webmanifest')
+def manifesto():
+    resposta = app.send_static_file("manifest.webmanifest")
+    resposta.mimetype = "application/manifest+json"
+    return resposta
+
+
+@app.route('/sw.js')
+def service_worker():
+    resposta = app.send_static_file("sw.js")
+    resposta.headers["Cache-Control"] = "no-cache"
+    return resposta
+
+
+@app.after_request
+def impedir_cache_de_dados(resposta):
+    if request.path.startswith("/api/"):
+        resposta.headers["Cache-Control"] = "no-store"
+    return resposta
+
+@app.route('/api/status')
+def status_aplicacao():
     return jsonify({
         "status": "online",
         "sistema": "Studio Marcia Nails",
@@ -18,8 +53,9 @@ def home():
 @app.route('/api/status-banco')
 def status_banco():
     try:
-        total_clientes = session.query(Cliente).count()
-        total_agendamentos = session.query(Agendamento).count()
+        with Session() as sessao:
+            total_clientes = sessao.query(Cliente).count()
+            total_agendamentos = sessao.query(Agendamento).count()
         return jsonify({
             "banco": "conectado",
             "total_clientes": total_clientes,
@@ -54,7 +90,7 @@ def consultar_horarios():
                 Agendamento.data_hora >= datetime.combine(dia, time.min),
                 Agendamento.data_hora <= datetime.combine(dia, time.max),
             ).all()
-        livres = horarios_disponiveis(dia, [registro[0] for registro in registros])
+        livres = horarios_disponiveis(dia, [registro[0] for registro in registros], agora_sao_paulo())
         return jsonify({
             "data": dia.isoformat(),
             "duracao_minutos": DURACAO_MINUTOS,
@@ -63,6 +99,82 @@ def consultar_horarios():
     except Exception:
         app.logger.exception("Falha ao consultar os horários disponíveis.")
         return jsonify({"mensagem": "Não foi possível consultar os horários."}), 500
+
+
+@app.route('/api/datas')
+def consultar_datas():
+    try:
+        agora = agora_sao_paulo()
+        hoje = agora.date()
+        limite = limite_consulta(hoje)
+        # Uma consulta para todo o período evita uma chamada ao banco por dia.
+        with Session() as sessao:
+            registros = sessao.query(Agendamento.data_hora).filter(
+                Agendamento.data_hora >= datetime.combine(hoje, time.min),
+                Agendamento.data_hora <= datetime.combine(limite, time.max),
+            ).all()
+        return jsonify(datas_disponiveis(agora, [registro[0] for registro in registros]))
+    except Exception:
+        app.logger.exception("Falha ao consultar as datas disponíveis.")
+        return jsonify({"mensagem": "Não foi possível consultar as datas."}), 500
+
+
+@app.route('/api/agendamentos', methods=['POST'])
+def criar_agendamento():
+    origem = request.headers.get("Origin")
+    if request.headers.get("X-Requested-With") != "MarciaNails" or (
+        origem is not None and origem != request.host_url.rstrip("/")
+    ):
+        return jsonify({"mensagem": "Envio não autorizado. Abra o formulário pelo aplicativo."}), 403
+    if not request.is_json:
+        return jsonify({"mensagem": "Envie os dados no formato JSON."}), 415
+    if not limite_reservas.permitir(request.remote_addr or "local", app.config["RESERVAS_POR_MINUTO"]):
+        resposta = jsonify({"mensagem": "Muitas tentativas. Aguarde um minuto antes de tentar novamente."})
+        resposta.headers["Retry-After"] = "60"
+        return resposta, 429
+    try:
+        dados = validar_reserva(request.get_json(), agora_sao_paulo())
+    except (ReservaInvalida, BadRequest) as erro:
+        mensagem = str(erro) if isinstance(erro, ReservaInvalida) else "Os dados enviados são inválidos."
+        return jsonify({"mensagem": mensagem}), 400
+    try:
+        with Session() as sessao:
+            # O bloqueio é adquirido ANTES da consulta. Outra confirmação espera
+            # o commit e reavalia a disponibilidade, sem mudar as tabelas existentes.
+            sessao.execute(text("BEGIN IMMEDIATE"))
+            agora = agora_sao_paulo()
+            data_hora = dados["data_hora"]
+            registros = sessao.query(Agendamento.data_hora).filter(
+                Agendamento.data_hora >= datetime.combine(data_hora.date(), time.min),
+                Agendamento.data_hora <= datetime.combine(data_hora.date(), time.max),
+            ).all()
+            livres = horarios_disponiveis(data_hora.date(), [r[0] for r in registros], agora)
+            if data_hora.strftime("%H:%M") not in livres:
+                return jsonify({"mensagem": "Esse horário não está mais disponível. Escolha outro."}), 409
+            cliente = sessao.query(Cliente).filter_by(telefone=dados["telefone"]).first()
+            if cliente is None:
+                cliente = Cliente(nome=dados["nome"], telefone=dados["telefone"])
+            # Sem autenticação, não sobrescrevemos nem revelamos o nome já cadastrado.
+            reserva = Agendamento(cliente=cliente, data_hora=data_hora, servico=dados["servico"])
+            sessao.add(reserva)
+            sessao.flush()
+            comprovante = {"id": reserva.id, "nome": dados["nome"], "servico": dados["servico"],
+                           "data": data_hora.date().isoformat(), "horario": data_hora.strftime("%H:%M"),
+                           "fim": (data_hora + timedelta(minutes=DURACAO_MINUTOS)).strftime("%H:%M")}
+            sessao.commit()
+        return jsonify({"agendamento": comprovante}), 201
+    except OperationalError:
+        # Não registrar a exceção SQL: ela pode incluir nome e telefone nos parâmetros.
+        app.logger.error("Banco temporariamente indisponível ao gravar reserva (OperationalError).")
+        return jsonify({"mensagem": "Não foi possível confirmar agora. Tente novamente em instantes."}), 503
+    except Exception as erro:
+        app.logger.error("Falha ao gravar a reserva; tipo=%s.", type(erro).__name__)
+        return jsonify({"mensagem": "Não foi possível salvar o agendamento."}), 500
+
+
+@app.errorhandler(413)
+def requisicao_grande(erro):
+    return jsonify({"mensagem": "O formulário excedeu o tamanho permitido."}), 413
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
