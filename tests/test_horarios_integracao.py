@@ -1,6 +1,7 @@
 """Integração entre HTTP, modelos e SQLite real em arquivo temporário."""
 
 from datetime import datetime
+import gestao  # Carrega bcrypt antes do isolamento temporário de sys.modules.
 import importlib.util
 from pathlib import Path
 from tempfile import TemporaryDirectory

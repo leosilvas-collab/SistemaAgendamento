@@ -1,4 +1,8 @@
 "use strict";
+const salaoPublico = document.body.dataset.salao || "marcia-nails";
+function urlPublica(caminho) {
+  return caminho + (caminho.includes("?") ? "&" : "?") + "salao=" + encodeURIComponent(salaoPublico);
+}
 const form = document.getElementById("consulta");
 const dia = document.getElementById("data");
 const servico = document.getElementById("servico");
@@ -97,7 +101,7 @@ async function carregarDatas(preservar) {
   const abortar = new AbortController();
   const timeout = setTimeout(() => abortar.abort(), 12000);
   try {
-    const resposta = await fetch("/api/datas", {cache:"no-store", signal:abortar.signal, headers:{Accept:"application/json"}});
+    const resposta = await fetch(urlPublica("/api/datas"), {cache:"no-store", signal:abortar.signal, headers:{Accept:"application/json"}});
     const dados = await resposta.json();
     if (!resposta.ok || !Array.isArray(dados.semanas)) throw new Error("datas");
     if (versao !== versaoDatas) return;
@@ -164,7 +168,7 @@ async function consultar(evento) {
   situacao.classList.remove("erro");
   situacao.textContent = "Consultando os horários…";
   try {
-    const resposta = await fetch("/api/horarios?data=" + encodeURIComponent(dia.value), {
+    const resposta = await fetch(urlPublica("/api/horarios?data=" + encodeURIComponent(dia.value)), {
       signal:controladorLocal.signal, cache:"no-store", headers:{Accept:"application/json"}
     });
     const dados = await resposta.json();
@@ -173,10 +177,14 @@ async function consultar(evento) {
     situacao.textContent = dados.horarios.length
       ? diaFormatado() + " — " + dados.horarios.length + " horários livres. Toque para selecionar."
       : "Não há mais horários livres neste dia. Toque na data para escolher outro dia.";
+    if (calendario && calendario.reservas_liberadas === false) {
+      situacao.textContent = "Agenda disponível para consulta. Novos agendamentos estão suspensos até a renovação do plano do estabelecimento.";
+    }
     dados.horarios.forEach(horario => {
       const botao = document.createElement("button");
       botao.type = "button";
       botao.className = "horario";
+      botao.disabled = calendario && calendario.reservas_liberadas === false;
       botao.dataset.horario = horario;
       botao.textContent = horario + " - Disponível";
       botao.setAttribute("aria-pressed", "false");
@@ -235,7 +243,7 @@ formularioReserva.addEventListener("submit", async evento => {
   const abortar = new AbortController();
   const timeout = setTimeout(() => abortar.abort(), 15000);
   try {
-    const resposta = await fetch("/api/agendamentos", {
+    const resposta = await fetch(urlPublica("/api/agendamentos"), {
       method:"POST", cache:"no-store", signal:abortar.signal,
       headers:{"Content-Type":"application/json", "X-Requested-With":"MarciaNails"},
       body:JSON.stringify(dados)

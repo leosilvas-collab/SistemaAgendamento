@@ -58,7 +58,7 @@ O registro da cliente acontece durante o agendamento, sem cadastro separado.
 ## Ainda a definir antes de implementar
 
 - Regras para bloquear horários, cancelar e remarcar.
-- Proteção das operações e dos dados exclusivos de Márcia.
+- Recuperação da senha master e verificação de posse do e-mail antes de hospedagem pública.
 
 Os horários e a cliente do desenho são exemplos. O desenho não executa reservas nem comprova acessibilidade; esses critérios serão verificados na interface funcional.
 
@@ -92,3 +92,8 @@ O formulário usa JSON, verificação de origem quando presente, um cabeçalho d
 Uma falha de rede após o envio pode impedir a confirmação na tela mesmo após salvar; por isso a aplicação não repete automaticamente o pedido. A cliente é orientada a conferir com o salão. Não há envio automático de WhatsApp nesta etapa.
 
 O alto contraste fica na barra superior, ao lado de PWA, e continua disponível nas três telas.
+
+
+## Áreas de gestão
+
+A PWA agora oferece acesso autenticado ao gestor, agenda privada, busca de clientes e reservas futuras manuais. O proprietário dispõe de pré-cadastro por e-mail, controle dos planos e autorização de redefinição de senha. A conta da Márcia começa paga; novos gestores recebem 30 dias de teste a partir da ativação e podem receber até três extensões de 30 dias. Consulte [as regras e limites da demonstração](gestao.md).

@@ -11,6 +11,8 @@ from reservas import validar_reserva, ReservaInvalida, LimiteDeTentativas
 from agenda import (DURACAO_MINUTOS, horarios_disponiveis, agora_sao_paulo,
                     datas_disponiveis, limite_consulta)
 from models import Session, Cliente, Agendamento
+import models as modelos
+from gestao import registrar_gestao, ErroGestao, pode_agendar
 
 app = Flask(__name__, root_path=str(Path(__file__).resolve().parent))
 app.config.update(MAX_CONTENT_LENGTH=8192, RESERVAS_POR_MINUTO=10)
@@ -18,7 +20,10 @@ limite_reservas = LimiteDeTentativas()
 
 @app.route('/')
 def home():
-    return render_template("inicio.html")
+    with Session() as sessao:
+        usuario=gestao_service.publico(sessao)
+        return render_template("inicio.html",salao=usuario.slug,
+            nome_estabelecimento=usuario.estabelecimento or "Agendamento Online")
 
 
 
@@ -86,7 +91,8 @@ def consultar_horarios():
     try:
         # A consulta não compartilha sessão entre requisições e não expõe clientes.
         with Session() as sessao:
-            registros = sessao.query(Agendamento.data_hora).filter(
+            usuario=gestao_service.publico(sessao)
+            registros = gestao_service.filtrar_agenda(sessao.query(Agendamento.data_hora),usuario).filter(
                 Agendamento.data_hora >= datetime.combine(dia, time.min),
                 Agendamento.data_hora <= datetime.combine(dia, time.max),
             ).all()
@@ -96,6 +102,8 @@ def consultar_horarios():
             "duracao_minutos": DURACAO_MINUTOS,
             "horarios": livres,
         })
+    except ErroGestao:
+        raise
     except Exception:
         app.logger.exception("Falha ao consultar os horários disponíveis.")
         return jsonify({"mensagem": "Não foi possível consultar os horários."}), 500
@@ -109,11 +117,17 @@ def consultar_datas():
         limite = limite_consulta(hoje)
         # Uma consulta para todo o período evita uma chamada ao banco por dia.
         with Session() as sessao:
-            registros = sessao.query(Agendamento.data_hora).filter(
+            usuario=gestao_service.publico(sessao)
+            registros = gestao_service.filtrar_agenda(sessao.query(Agendamento.data_hora),usuario).filter(
                 Agendamento.data_hora >= datetime.combine(hoje, time.min),
                 Agendamento.data_hora <= datetime.combine(limite, time.max),
             ).all()
-        return jsonify(datas_disponiveis(agora, [registro[0] for registro in registros]))
+        dados=datas_disponiveis(agora, [registro[0] for registro in registros])
+        dados["reservas_liberadas"]=pode_agendar(usuario,agora)
+        dados["estabelecimento"]=usuario.estabelecimento
+        return jsonify(dados)
+    except ErroGestao:
+        raise
     except Exception:
         app.logger.exception("Falha ao consultar as datas disponíveis.")
         return jsonify({"mensagem": "Não foi possível consultar as datas."}), 500
@@ -121,6 +135,10 @@ def consultar_datas():
 
 @app.route('/api/agendamentos', methods=['POST'])
 def criar_agendamento():
+    return gravar_agendamento()
+
+
+def gravar_agendamento(gestor=None):
     origem = request.headers.get("Origin")
     if request.headers.get("X-Requested-With") != "MarciaNails" or (
         origem is not None and origem != request.host_url.rstrip("/")
@@ -133,7 +151,7 @@ def criar_agendamento():
         resposta.headers["Retry-After"] = "60"
         return resposta, 429
     try:
-        dados = validar_reserva(request.get_json(), agora_sao_paulo())
+        dados = validar_reserva(request.get_json(), agora_sao_paulo(), permitir_futuro=gestor is not None)
     except (ReservaInvalida, BadRequest) as erro:
         mensagem = str(erro) if isinstance(erro, ReservaInvalida) else "Os dados enviados são inválidos."
         return jsonify({"mensagem": mensagem}), 400
@@ -143,8 +161,11 @@ def criar_agendamento():
             # o commit e reavalia a disponibilidade, sem mudar as tabelas existentes.
             sessao.execute(text("BEGIN IMMEDIATE"))
             agora = agora_sao_paulo()
+            usuario = sessao.get(modelos.UsuarioGestao,gestor.id) if gestor is not None else gestao_service.publico(sessao)
+            if not pode_agendar(usuario,agora):
+                return jsonify({"mensagem":"O período de teste terminou. A agenda pode ser consultada, mas novas reservas estão bloqueadas."}),403
             data_hora = dados["data_hora"]
-            registros = sessao.query(Agendamento.data_hora).filter(
+            registros = gestao_service.filtrar_agenda(sessao.query(Agendamento.data_hora),usuario).filter(
                 Agendamento.data_hora >= datetime.combine(data_hora.date(), time.min),
                 Agendamento.data_hora <= datetime.combine(data_hora.date(), time.max),
             ).all()
@@ -158,11 +179,14 @@ def criar_agendamento():
             reserva = Agendamento(cliente=cliente, data_hora=data_hora, servico=dados["servico"])
             sessao.add(reserva)
             sessao.flush()
+            gestao_service.vincular(sessao,reserva,usuario,dados["nome"])
             comprovante = {"id": reserva.id, "nome": dados["nome"], "servico": dados["servico"],
                            "data": data_hora.date().isoformat(), "horario": data_hora.strftime("%H:%M"),
                            "fim": (data_hora + timedelta(minutes=DURACAO_MINUTOS)).strftime("%H:%M")}
             sessao.commit()
         return jsonify({"agendamento": comprovante}), 201
+    except ErroGestao:
+        raise
     except OperationalError:
         # Não registrar a exceção SQL: ela pode incluir nome e telefone nos parâmetros.
         app.logger.error("Banco temporariamente indisponível ao gravar reserva (OperationalError).")
@@ -175,6 +199,8 @@ def criar_agendamento():
 @app.errorhandler(413)
 def requisicao_grande(erro):
     return jsonify({"mensagem": "O formulário excedeu o tamanho permitido."}), 413
+
+gestao_service = registrar_gestao(app,modelos,lambda: agora_sao_paulo(),gravar_agendamento)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

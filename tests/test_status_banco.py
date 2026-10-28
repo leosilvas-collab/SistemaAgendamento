@@ -1,5 +1,6 @@
 """Testa as respostas HTTP sem abrir o SQLite real do projeto."""
 
+import gestao  # Carrega bcrypt antes do isolamento temporário de sys.modules.
 import importlib.util
 import logging
 from pathlib import Path

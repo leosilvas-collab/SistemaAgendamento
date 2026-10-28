@@ -4,21 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#780d3d">
-  <title>Agendamento Online | Studio Márcia Nails</title>
+  <title>Agendamento Online | {{ nome_estabelecimento }}</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="{{ url_for('static', filename='icone-192.png') }}" type="image/png">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icone-192.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='inicio.css') }}">
   <script src="{{ url_for('static', filename='inicio.js') }}" defer></script>
 </head>
-<body>
+<body data-salao="{{ salao }}">
   <a class="pular" href="#conteudo">Pular para o agendamento</a>
   <div class="faixa" aria-label="Aplicação web progressiva">
     <span class="faixa-titulo">PWA</span>
     <button id="contraste" type="button" aria-pressed="false">Alto contraste</button>
   </div>
   <header>
-    <h1>Studio Márcia Nails <span aria-hidden="true">💅</span></h1>
+    <h1>{{ nome_estabelecimento }} <span aria-hidden="true">💅</span></h1>
     <p class="subtitulo">Agendamento Online</p>
   </header>
   <main id="conteudo" tabindex="-1">
@@ -82,6 +82,7 @@
       <p id="resumo-confirmado" class="cartao"></p>
       <button id="voltar-inicio" class="horario" type="button">Voltar para o Início</button>
     </section>
+    <a class="secundario acesso-gestao" href="/gestao">Área de Gestão</a>
     <p id="expediente" class="expediente">Segunda a sábado, das 08h às 12h e das 13h às 18h.<br>Domingo sem atendimento.</p>
   </main>
 </body>

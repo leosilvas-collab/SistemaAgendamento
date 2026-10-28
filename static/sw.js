@@ -1,6 +1,6 @@
 "use strict";
-const CACHE = "marcia-nails-estatico-v4";
-const ARQUIVOS = ["/static/inicio.css", "/static/inicio.js", "/static/icone-192.png", "/static/icone-512.png", "/static/offline.html"];
+const CACHE = "marcia-nails-estatico-v10";
+const ARQUIVOS = ["/static/inicio.css", "/static/inicio.js", "/static/gestao.css", "/static/gestao.js", "/static/icone-192.png", "/static/icone-512.png", "/static/offline.html"];
 self.addEventListener("install", evento => {
   evento.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ARQUIVOS)));
 });

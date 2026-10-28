@@ -15,7 +15,7 @@ class ReservaInvalida(ValueError):
     pass
 
 
-def validar_reserva(dados, agora: datetime) -> dict:
+def validar_reserva(dados, agora: datetime, permitir_futuro: bool = False) -> dict:
     campos = {"nome", "telefone", "servico", "data", "horario", "website"}
     if not isinstance(dados, dict) or set(dados) - campos:
         raise ReservaInvalida("Informe apenas os dados solicitados para a reserva.")
@@ -48,7 +48,7 @@ def validar_reserva(dados, agora: datetime) -> dict:
         raise ReservaInvalida("Selecione uma data e um horário válidos.") from None
     dia = data_hora.date()
     momento = horario_local(agora)
-    if dia < momento.date() or dia > limite_consulta(momento.date()):
+    if dia < momento.date() or (not permitir_futuro and dia > limite_consulta(momento.date())):
         raise ReservaInvalida("Selecione uma data dentro do período disponível.")
     if dados["horario"] not in horarios_disponiveis(dia, [], agora):
         raise ReservaInvalida("Esse horário já começou ou está fora do expediente. Escolha outro.")
