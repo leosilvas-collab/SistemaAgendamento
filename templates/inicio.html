@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#780d3d">
+  <title>Agendamento Online | {{ nome_estabelecimento }}</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="{{ url_for('static', filename='icone-192.png') }}" type="image/png">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icone-192.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='inicio.css') }}">
+  <script src="{{ url_for('static', filename='inicio.js') }}" defer></script>
+</head>
+<body data-salao="{{ salao }}">
+  <a class="pular" href="#conteudo">Pular para o agendamento</a>
+  <div class="faixa" aria-label="Aplicação web progressiva">
+    <span class="faixa-titulo">PWA</span>
+    <button id="contraste" type="button" aria-pressed="false">Alto contraste</button>
+  </div>
+  <header>
+    <h1>{{ nome_estabelecimento }} <span aria-hidden="true">💅</span></h1>
+    <p class="subtitulo">Agendamento Online</p>
+  </header>
+  <main id="conteudo" tabindex="-1">
+    <div id="pagina-agenda">
+    <form id="consulta" class="cartao">
+      <span id="rotulo-data" class="rotulo-data">Selecione a Data:</span>
+      <input id="data" name="data" type="hidden" value="">
+      <button id="escolher-data" class="horario botao-data" type="button" aria-labelledby="rotulo-data data-dia data-extenso" aria-controls="painel-datas" aria-expanded="false" disabled>
+        <strong id="data-dia">Consultando datas…</strong>
+        <span id="data-extenso"></span>
+        <small>Escolher outro dia</small>
+      </button>
+      <section id="painel-datas" hidden aria-labelledby="titulo-datas">
+        <h2 id="titulo-datas">Escolha uma data</h2>
+        <p class="ajuda">A semana atual e até cinco semanas completas seguintes. Domingos sem atendimento.</p>
+        <div id="lista-datas"></div>
+        <button id="mais-dias" type="button" class="secundario">Mostrar mais dias</button>
+        <p id="limite-datas" class="ajuda" role="status" aria-live="polite"></p>
+        <button id="fechar-datas" type="button" class="fechar-datas">Fechar lista de datas</button>
+      </section>
+      <label for="servico">Selecione o Serviço:</label>
+      <select id="servico" name="servico">
+        <option>Corte de Cabelo</option>
+        <option>Pedicure</option>
+        <option selected>Manicure</option>
+        <option>Escova</option>
+      </select>
+      <p class="ajuda">Todos os serviços têm duração de 30 minutos.</p>
+    </form>
+    <section class="horarios" aria-labelledby="titulo-horarios" aria-busy="false">
+      <h2 id="titulo-horarios">Horários Disponíveis</h2>
+      <p id="situacao" role="status" aria-live="polite" aria-atomic="true">Consultando os horários…</p>
+      <button id="tentar-novamente" class="primario" type="button" hidden>Tentar novamente</button>
+      <div id="lista-horarios" role="group" aria-label="Horários disponíveis"></div>
+      <noscript><p>Ative o JavaScript no navegador para consultar a agenda.</p></noscript>
+    </section>
+    </div>
+    <section id="selecao" hidden aria-labelledby="titulo-selecao">
+      <div class="cartao">
+        <h2 id="titulo-selecao" tabindex="-1">Resumo da Reserva:</h2>
+        <p id="resumo" aria-live="polite" aria-atomic="true"></p>
+      </div>
+      <form id="form-reserva">
+        <fieldset id="campos-reserva">
+          <legend class="somente-leitor">Dados para confirmar o agendamento</legend>
+          <label for="nome">Nome Completo:</label>
+          <input id="nome" name="nome" type="text" autocomplete="name" minlength="2" maxlength="100" required>
+          <label for="telefone">Telefone (WhatsApp):</label>
+          <input id="telefone" name="telefone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="(11) 99999-9999" required aria-describedby="ajuda-telefone">
+          <p id="ajuda-telefone" class="ajuda">Informe o DDD e o número. Não é preciso criar uma conta.</p>
+          <div class="campo-verificacao" aria-hidden="true"><label for="website">Deixe vazio</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+          <button id="confirmar-reserva" class="primario" type="submit">Confirmar Agendamento</button>
+        </fieldset>
+        <p id="erro-reserva" class="erro-reserva" role="alert" aria-atomic="true" hidden></p>
+        <p id="estado-reserva" role="status" aria-live="polite"></p>
+        <button id="voltar-agenda" class="secundario" type="button">Voltar e Escolher Outro Horário</button>
+      </form>
+    </section>
+    <section id="confirmacao" hidden aria-labelledby="titulo-confirmacao">
+      <h2 id="titulo-confirmacao" class="sucesso" tabindex="-1"><span aria-hidden="true">✓</span> Agendamento Confirmado!</h2>
+      <p id="resumo-confirmado" class="cartao"></p>
+      <button id="voltar-inicio" class="horario" type="button">Voltar para o Início</button>
+    </section>
+    <a class="secundario acesso-gestao" href="/gestao">Área de Gestão</a>
+    <p id="expediente" class="expediente">Segunda a sábado, das 08h às 12h e das 13h às 18h.<br>Domingo sem atendimento.</p>
+  </main>
+</body>
+</html>

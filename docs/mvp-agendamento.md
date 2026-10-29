@@ -44,13 +44,56 @@ O registro da cliente acontece durante o agendamento, sem cadastro separado.
 - Dados de contato não aparecem na consulta pública de horários;
 - A confirmação será na tela. Lembretes automáticos não fazem parte deste rascunho.
 
+## Critérios de aceite da consulta de horários
+
+- De segunda-feira a sábado, um dia sem reservas apresenta 18 horários disponíveis;
+- Aos domingos, a agenda não oferece horários;
+- Os horários são apresentados em ordem, com intervalos de 30 minutos;
+- O último atendimento da manhã começa às 11:30 e termina às 12:00;
+- O primeiro atendimento da tarde começa às 13:00;
+- O último atendimento do dia começa às 17:30 e termina às 18:00;
+- Horários reservados deixam de aparecer como disponíveis;
+- Se não houver horários livres no dia escolhido, a página informa isso e permite selecionar outro dia.
+
 ## Ainda a definir antes de implementar
 
 - Regras para bloquear horários, cancelar e remarcar.
-- Proteção das operações e dos dados exclusivos de Márcia.
+- Recuperação da senha master e verificação de posse do e-mail antes de hospedagem pública.
 
 Os horários e a cliente do desenho são exemplos. O desenho não executa reservas nem comprova acessibilidade; esses critérios serão verificados na interface funcional.
 
 ## Rascunho
 
 ![Fluxo em três estados](rascunho-agendamento.png)
+
+
+## Seleção acessível de datas e encaixes
+
+- A data é exibida por extenso em um botão grande, com o mesmo estilo dos horários.
+- A lista abre na própria página, sem calendário mensal nem rolagem interna.
+- Primeiro aparecem os dias restantes da semana atual. O botão Mostrar mais dias acrescenta uma semana de segunda a sábado por vez, até cinco semanas completas seguintes.
+- Aos domingos, a primeira semana exibida já é a próxima semana de atendimento.
+- Ao abrir, o sistema prioriza hoje se existir um horário livre que ainda não começou. Caso contrário, seleciona o próximo dia disponível dentro do período.
+- Às 17h29, o horário das 17h30 ainda pode ser oferecido. Às 17h30, já não pode ser oferecido.
+- O relógio usa America/Sao_Paulo. Nenhuma antecedência mínima adicional é exigida nesta consulta.
+- Datas sem horários livres são identificadas por texto. Se todo o período estiver ocupado, uma mensagem informa a ausência de disponibilidade.
+- A regra é aplicada na API; o botão não depende do fuso do celular.
+- Ao confirmar a reserva, a disponibilidade e o horário deverão ser conferidos novamente. A confirmação agora revalida o horário e grava a reserva no SQLite.
+
+
+## Salvamento e confirmação
+
+Ao escolher um horário, a cliente preenche nome e telefone. A confirmação é mostrada somente após a gravação no SQLite. O horário reservado deixa de aparecer como disponível.
+
+O servidor valida os campos, os serviços permitidos, o período de datas e o expediente. O telefone é normalizado para reaproveitar o cadastro existente; o envio público não altera nem revela o nome anterior da cliente. A confirmação utiliza uma transação SQLite com BEGIN IMMEDIATE, conferindo novamente a disponibilidade depois de adquirir o bloqueio de escrita. Se houver falha, a transação é desfeita. Nenhuma alteração de tabelas é necessária.
+
+O formulário usa JSON, verificação de origem quando presente, um cabeçalho da aplicação e campo de verificação anti-spam. Há limite de tamanho de requisição e de dez tentativas por minuto por IP no processo atual. Esse limite deverá ser compartilhado na camada de hospedagem se a aplicação passar a usar vários processos. Os logs de falha na reserva não incluem os parâmetros enviados pela cliente.
+
+Uma falha de rede após o envio pode impedir a confirmação na tela mesmo após salvar; por isso a aplicação não repete automaticamente o pedido. A cliente é orientada a conferir com o salão. Não há envio automático de WhatsApp nesta etapa.
+
+O alto contraste fica na barra superior, ao lado de PWA, e continua disponível nas três telas.
+
+
+## Áreas de gestão
+
+A PWA agora oferece acesso autenticado ao gestor, agenda privada, busca de clientes e reservas futuras manuais. O proprietário dispõe de pré-cadastro por e-mail, controle dos planos e autorização de redefinição de senha. A conta da Márcia começa paga; novos gestores recebem 30 dias de teste a partir da ativação e podem receber até três extensões de 30 dias. Consulte [as regras e limites da demonstração](gestao.md).

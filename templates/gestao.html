@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#780d3d">
+  <title>{{ 'Proprietário' if area == 'proprietario' else 'Área de Gestão' }} | Márcia Nails</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='inicio.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='gestao.css') }}">
+  <script src="{{ url_for('static',filename='gestao.js') }}" defer></script>
+</head>
+<body data-area="{{ area }}">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <div class="faixa"><span class="faixa-titulo">PWA</span><button id="contraste" type="button" aria-pressed="false">Alto contraste</button></div>
+  <header><h1 id="nome-area">{{ 'Proprietário do Sistema' if area == 'proprietario' else 'Área de Gestão' }}</h1><p class="subtitulo">{{ 'Gestão de usuários' if area == 'proprietario' else 'Sua agenda, de um jeito simples' }}</p></header>
+  <main id="conteudo" tabindex="-1">
+    <p id="mensagem" role="status" aria-live="polite" aria-atomic="true"></p>
+    <section id="acesso" class="cartao" aria-labelledby="titulo-acesso">
+      <h2 id="titulo-acesso">Entre com seu e-mail</h2>
+      <form id="form-acesso">
+        <label for="email">E-mail:</label><input id="email" type="email" autocomplete="username" maxlength="254" required>
+        <div id="dados-cadastro" hidden>
+          {% if area == 'gestor' %}
+          <label for="nome">Nome Completo:</label><input id="nome" type="text" autocomplete="name" maxlength="100">
+          <label for="telefone">Telefone:</label><input id="telefone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30">
+          <label for="estabelecimento">Nome do Estabelecimento:</label><input id="estabelecimento" type="text" autocomplete="organization" maxlength="100">
+          {% endif %}
+          <p class="ajuda">Primeiro acesso ou redefinição autorizada pelo proprietário. Defina uma senha de seis números para esta demonstração.</p>
+        </div>
+        <div id="campo-senha" hidden><label for="senha">Senha de seis números:</label><input id="senha" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="current-password"></div>
+        <div id="campo-confirmacao" hidden><label for="confirmacao-senha">Confirme a senha:</label><input id="confirmacao-senha" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password"></div>
+        <p id="erro-acesso" class="erro-reserva" role="alert" hidden></p>
+        <button id="entrar" class="primario" type="submit">Continuar</button>
+        <button id="trocar-email" class="fechar-datas" type="button" hidden>Trocar e-mail</button>
+      </form>
+      <p class="ajuda">Demonstração acadêmica local. O e-mail precisa estar pré-cadastrado pelo proprietário.</p>
+    </section>
+    <section id="painel" hidden>
+      <div class="barra-painel"><strong id="identificacao"></strong><button id="sair" class="secundario" type="button">Sair</button></div>
+      {% if area == 'proprietario' %}
+      <section class="cartao"><h2>Cadastrar gestor</h2><form id="novo-gestor"><label for="email-novo">E-mail do gestor:</label><input id="email-novo" type="email" maxlength="254" required><button class="primario" type="submit">Pré-cadastrar e-mail</button></form></section>
+      <section class="cartao"><h2>Redefinição de senha</h2><form id="form-redefinir"><label for="email-redefinir">E-mail do gestor:</label><input id="email-redefinir" type="email" maxlength="254" required><button class="primario" type="submit">Autorizar redefinição de senha</button></form><p class="ajuda">Libera uma nova definição de senha na Área de Gestão e encerra as sessões anteriores. Não envia e-mail.</p></section>
+      <h2>Gestores cadastrados</h2><div id="usuarios"></div>
+      {% else %}
+      <section class="cartao" aria-labelledby="titulo-plano"><h2 id="titulo-plano">Seu plano</h2><p id="info-plano"></p><h3>Pagamento do plano mensal</h3><p>Aqui você pode pagar seu plano premium.</p><p class="ajuda">Área informativa da demonstração. Nenhum pagamento ou cobrança é realizado. Procure o proprietário para alterar o plano.</p><a id="link-publico" href="/">Abrir agenda pública do estabelecimento</a></section>
+      <section class="cartao">
+        <h2>Agenda do dia</h2>
+        <span class="rotulo-data">Selecione a Data:</span>
+        <button id="data-grande" class="horario botao-data" type="button" aria-expanded="false" aria-controls="datas-gestor">Carregando datas…</button>
+        <section id="datas-gestor" hidden><h3>Escolha uma data</h3><div id="opcoes-datas"></div><button id="mais-datas" class="secundario" type="button">Mostrar mais dias</button><p id="fim-datas" role="status" aria-live="polite"></p><button id="fechar-datas" class="fechar-datas" type="button">Fechar lista de datas</button></section>
+        <button id="abrir-futuro" class="fechar-datas" type="button" aria-expanded="false" aria-controls="painel-futuro">Agendamentos futuros</button>
+        <section id="painel-futuro" hidden><form id="form-futuro"><label for="data-manual">Data futura (DD/MM/AAAA):</label><input id="data-manual" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" required><button class="primario" type="submit">Consultar esta data</button></form></section>
+        <p id="data-agenda" role="status" aria-live="polite"></p><div id="atendimentos"></div>
+      </section>
+      <section id="novo-atendimento" class="cartao">
+        <h2 id="titulo-agendamento">Novo agendamento</h2>
+        <p id="aviso-edicao" role="status" hidden></p>
+        <section id="data-edicao-painel" hidden><label for="data-edicao">Data do agendamento (DD/MM/AAAA):</label><input id="data-edicao" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10"><button id="consultar-edicao" class="fechar-datas" type="button">Consultar horários desta data</button></section>
+        <form id="busca-clientes"><label for="busca">Buscar cliente por nome ou telefone:</label><input id="busca" type="search" minlength="2" maxlength="100"><button class="fechar-datas" type="submit">Buscar cliente</button></form><div id="clientes-encontrados" role="group" aria-label="Clientes encontrados"></div><p id="resultado-busca" role="status" aria-live="polite"></p>
+        <form id="form-agendamento"><fieldset id="campos-agendamento"><legend class="somente-leitor">Dados do agendamento</legend>
+          <label for="cliente-nome">Nome Completo:</label><input id="cliente-nome" type="text" autocomplete="off" minlength="2" maxlength="100" required>
+          <label for="cliente-telefone">Telefone:</label><input id="cliente-telefone" type="tel" inputmode="tel" autocomplete="off" maxlength="30" required>
+          <label for="servico">Serviço:</label><select id="servico"><option>Corte de Cabelo</option><option>Pedicure</option><option selected>Manicure</option><option>Escova</option></select><p class="ajuda">Todos os serviços têm duração de 30 minutos.</p>
+          <h3>Escolha um horário livre</h3><div id="horarios-gestor" role="group" aria-label="Horários livres"></div><p id="horario-escolhido" role="status" aria-live="polite"></p>
+          <button id="salvar-agendamento" class="primario" type="submit">Confirmar Agendamento</button>
+        </fieldset></form>
+        <button id="cancelar-edicao" class="secundario" type="button" hidden>Cancelar alteração</button>
+      </section>
+      {% endif %}
+    </section>
+    {% if area == 'gestor' %}<p><a class="secundario acesso-gestao" href="/">Voltar para a PWA</a></p>{% endif %}
+  </main>
+</body>
+</html>

@@ -12,3 +12,6 @@ data/*.db-*
 
 # Configurações com senhas e chaves
 .env
+
+.coverage
+htmlcov/

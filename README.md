@@ -19,6 +19,24 @@ Python, Flask, SQLAlchemy e SQLite.
 
 ## Situação atual
 
-A estrutura inicial da aplicação e os modelos de clientes e agendamentos foram criados em um servidor Linux local. Também existem rotas para consultar o status da aplicação e verificar a conexão com o banco.
+A PWA consulta horários, registra reservas no SQLite e oferece seleção acessível de datas e alto contraste. Há uma Área de Gestão para acompanhar atendimentos e um painel do proprietário para pré-cadastrar gestores e administrar planos.
 
-As funcionalidades de agendamento ainda serão desenvolvidas. O servidor caseiro será utilizado para aprender sobre hospedagem e atualização de aplicações durante o projeto.
+## Executar localmente (PowerShell)
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe app.py
+```
+
+Abra http://127.0.0.1:5000/. O banco local fica em data/ e não deve ser versionado.
+
+Para o primeiro acesso, consulte [as instruções de gestão](docs/gestao.md). Não há senha padrão. A conta marcia@marcia.com começa no plano pago para a demonstração acadêmica.
+
+## Testes
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+Os testes de integração utilizam bancos SQLite temporários. O projeto é uma demonstração acadêmica local; o fluxo simplificado de ativação ainda não verifica a posse do e-mail.
