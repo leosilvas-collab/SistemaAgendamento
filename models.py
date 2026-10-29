@@ -88,7 +88,7 @@ session = Session()
 from sqlalchemy.dialects.sqlite import insert as inserir_sqlite
 with Session() as sessao_inicial:
     for conta in [
-        {"email":"leocladison@gmail.com", "papel":"proprietario", "nome":"Proprietário", "slug":"sistema", "plano":"pago"},
+        {"email":os.environ.get("MARCIA_OWNER_EMAIL", "leocladison@gmail.com"), "papel":"proprietario", "nome":"Proprietário", "slug":"sistema", "plano":"pago"},
         {"email":"marcia@marcia.com", "papel":"gestor", "nome":"Márcia", "estabelecimento":"Studio Márcia Nails", "slug":"marcia-nails", "plano":"pago"},
     ]:
         sessao_inicial.execute(inserir_sqlite(UsuarioGestao).values(**conta).on_conflict_do_nothing(index_elements=['email']))

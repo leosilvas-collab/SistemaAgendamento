@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#780d3d"><title>Monitoramento | Studio Márcia Nails</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='monitoramento.css') }}">
+  <script src="{{ url_for('static',filename='monitoramento.js') }}" defer></script>
+</head>
+<body>
+  <header><p>Studio Márcia Nails</p><h1>Monitoramento do MVP</h1></header>
+  <main>
+    <p class="introducao">Disponibilidade da aplicação e conexão com o banco de dados.</p>
+    <section id="indicadores" aria-live="polite" aria-atomic="true" aria-label="Resultado da verificação">
+      <article id="cartao-servico" class="indicador aguardando"><h2>Aplicação</h2><p id="estado-servico">VERIFICANDO…</p></article>
+      <article id="cartao-banco" class="indicador aguardando"><h2>Banco de dados</h2><p id="estado-banco">VERIFICANDO…</p></article>
+      <p id="detalhe">Consultando o serviço.</p>
+      <dl><div><dt>Última verificação (São Paulo)</dt><dd id="ultima-verificacao">Aguardando resposta</dd></div>
+        <div><dt>Última mudança observada</dt><dd id="ultima-mudanca">Aguardando primeira verificação</dd></div></dl>
+    </section>
+    <button id="verificar" type="button">Verificar agora</button>
+    <p class="nota">Consulta automática a cada 30 segundos enquanto esta página estiver aberta. Este painel não envia alertas e não calcula um histórico de tempo de atividade.</p>
+    <noscript><p>Ative o JavaScript ou consulte diretamente a rota de saúde abaixo.</p></noscript>
+    <nav aria-label="Links de verificação"><a href="{{ url_for('health') }}">Ver resposta JSON de /health</a><a href="/">Abrir agendamento</a></nav>
+  </main>
+</body></html>

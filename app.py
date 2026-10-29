@@ -13,6 +13,7 @@ from agenda import (DURACAO_MINUTOS, horarios_disponiveis, agora_sao_paulo,
 from models import Session, Cliente, Agendamento
 import models as modelos
 from gestao import registrar_gestao, ErroGestao, pode_agendar
+from monitoramento import registrar_monitoramento
 
 app = Flask(__name__, root_path=str(Path(__file__).resolve().parent))
 app.config.update(MAX_CONTENT_LENGTH=8192, RESERVAS_POR_MINUTO=10)
@@ -201,6 +202,8 @@ def requisicao_grande(erro):
     return jsonify({"mensagem": "O formulário excedeu o tamanho permitido."}), 413
 
 gestao_service = registrar_gestao(app,modelos,lambda: agora_sao_paulo(),gravar_agendamento)
+
+registrar_monitoramento(app, lambda: Session())
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
